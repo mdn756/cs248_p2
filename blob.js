@@ -55,6 +55,10 @@ class Blob {
 
             let forceX = F* (p1.p.x - p2.p.x)/ x; 
             let forceY = F* (p1.p.y - p2.p.y)/ x;
+			let dampingForceX = -0.9 * (p1.v.x - p2.v.x);
+			let dampingForceY = -0.9 * (p1.v.y - p2.v.y);
+			forceX += dampingForceX;
+			forceY += dampingForceY;	
             
             p1.f.x += forceX;
             p1.f.y += forceY;
@@ -113,12 +117,14 @@ class Blob {
 			let p1 = this.BP[i];
 			let p2 = this.BP[(i + 1) % this.n];
             let b = createVector(p2.p.x - p0.p.x, p2.p.y - p0.p.y);
-            let grad = createVector(-b.y/2, b.x/2);
+            let grad = createVector(-b.y/2.0, b.x/2.0);
             
             let F = createVector(k*(A-this.restArea)*grad.x,k*(A-this.restArea)*grad.y);
             p1.f.x += F.x;
             p1.f.y += F.y;
 		}
+		//subtract off const times velocity
+		// damping stretch spring
         
             
 	}
