@@ -10,7 +10,7 @@
  * @date 10/28/2022
  */
 
-const MAX_BLOBS = 3; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
+const MAX_BLOBS = 1; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
 const DRAW_BLOB_PARTICLES = true;
 
 const WIDTH = 1024;
@@ -105,13 +105,14 @@ function advanceTime(dt) {
 		gatherParticleForces_Gravity();
 
 		// Damping (springs or otherwise -- you can add some if you want): 
-
+                                                         
 		// Blob springs: 
 		for (let blob of blobs) {
 			blob.gatherForces_Stretch();
 			blob.gatherForces_Bend();
 			blob.gatherForces_Area();
 		}
+
 
 		gatherParticleForces_Penalty();
 
@@ -180,46 +181,52 @@ function gatherParticleForces_Penalty() {
 	if (warmup) { // First just consider rigid environment edges:
 		for (let edge of environment.getEdges()) {
 			// TODO (part1): Apply point-edge force (if pt not on edge!)
-			let k =1;
+			let k =200.0;
 			for (let particle of particles) {
-                // Calculate the vector from the particle to the edge
-                let q = edge.q;
-                let r = edge.r;
-                let edgeVector = createVector(r.p.x - q.p.x, r.p.y - q.p.y);
-                let particleToEdge = createVector(particle.p.x - q.p.x, particle.p.y - q.p.y);
-                
-                // Calculate the projection of particleToEdge onto edgeVector
-                let projection = edgeVector.dot(particleToEdge) / edgeVector.magSq();
-                
-                // Calculate the closest point on the edge to the particle
-                let closestPoint;
-                if (projection <= 0) {
-                    closestPoint = createVector(q.p.x, q.p.y);
-                } else if (projection >= 1) {
-                    closestPoint = createVector(r.p.x, r.p.y);
-                } else {
-                    closestPoint = createVector(q.p.x + edgeVector.x * projection, q.p.y + edgeVector.y * projection);
-                }
-                
-                // Calculate the distance between the particle and the closest point on the edge
-                let dx = closestPoint.x - particle.p.x;
-				let dy = closestPoint.y - particle.p.y;
-				let distance = Math.sqrt(dx * dx + dy * dy);
+				// Calculate the vector from the particle to the edge
+				let q = edge.q;
+				let r = edge.r;
+				let edgeVector = sub(r.p, q.p);
+				let particleToEdge = sub(particle.p, q.p);
+				
+				// Calculate the projection of particleToEdge onto edgeVector
+				let projection = edgeVector.dot(particleToEdge) / edgeVector.magSq();
+				
+				// Calculate the closest point on the edge to the particle
+				let closestPoint;
+				projection = constrain(projection, 0, 1);
+				closestPoint = add(q.p, p5.Vector.mult(edgeVector, projection));
+				
+				// Calculate the distance between the particle and the closest point on the edge
+				let n = sub(particle.p, closestPoint);
+				let distance = n.mag();
 
-                // Specify a threshold distance, below which penalty forces are applied
-                let threshold = 10; // Adjust this threshold as needed
-                
-                // Apply a penalty force if the particle is too close to the edge
-                if (distance < threshold) {
-                    let penaltyForceMagnitude = (threshold - distance) * k; // Adjust 'k' as needed
-                    let penaltyForce = createVector(particle.p.x - closestPoint.x, particle.p.y - closestPoint.y);
-                    penaltyForce.setMag(penaltyForceMagnitude);
-                    particle.f += penaltyForce;
-                }
+				// Specify a threshold distance, below which penalty forces are applied
+				let d0 = 30.0; // Adjust this threshold as needed
+				
+				// Apply a penalty force if the particle is too close to the edge
+				if (distance < d0) {
+					let penaltyForceMagnitude = (d0 - distance) * (-k); // Adjust 'k' as needed
+					let penaltyForce = createVector(closestPoint.x-particle.p.x, closestPoint.y-particle.p.y);
+					penaltyForce.normalize();
+					penaltyForce.mult(penaltyForceMagnitude);
+					particle.f.add(penaltyForce);
+				}
             }
 		}
 	} else { // Consider all rigid + blob edges:
 		for (let edge of edges) {
+			for (let blob of blobs) {
+				for (let bp of blob.BP) { 
+					// Calculate the vector from the particle to the edge
+					let q = edge.q;
+					let r = edge.r;
+					let edgeVector = sub(r.p, q.p);
+					let particleToEdge = sub(bp.p, q.p);
+					// inverse mass for impulse
+				}
+			}
+
 			// TODO (part2): Apply point-edge force (if pt not on edge!)
 		}
 	}
@@ -227,8 +234,10 @@ function gatherParticleForces_Penalty() {
 
 function gatherParticleForces_Gravity() {
 	let g = vec2(0, 100); //grav accel
-	for (let particle of particles)
+	for (let particle of particles) {
 		acc(particle.f, particle.mass, g); // f += m g
+		// acc(particle.f, particle.v, -10.0);
+	}
 }
 
 
