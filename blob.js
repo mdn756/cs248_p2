@@ -128,6 +128,41 @@ class Blob {
         
             
 	}
+	
+	getAABB() {
+		let minX = 999999;
+		let minY = 999999;
+		let maxX = 0;
+		let maxY = 0;
+
+		for (let i = 0; i < this.n; i++) { 
+			if (this.BP[i].p.x < minX) {
+				minX = this.BP[i].p.x; 
+			}
+			if (this.BP[i].p.x > maxX) {
+				maxX = this.BP[i].p.x; 
+			}
+			if (this.BP[i].p.y < minY) {
+				minY = this.BP[i].p.y; 
+			}
+			if (this.BP[i].p.y > maxY) {
+				maxY = this.BP[i].p.y; 
+			}
+		} 
+		
+		let AABB = {
+			minX: minX,
+			minY: minY,
+			maxX: maxX,
+			maxY: maxY
+		} 
+
+		/////////////////////TODO: COMMENT THIS IF YOU DONT WANT THE BV DRAWN 
+		push();
+		noFill();
+		rect(AABB.minX, AABB.minY, AABB.maxX - AABB.minX, AABB.maxY - AABB.minY);
+		pop();
+	}
 
 	// Center of mass of all blob particles
 	centerOfMass() {
@@ -200,8 +235,8 @@ class Blob {
 			for (let particle of this.BP)
 				circle(particle.p.x, particle.p.y, PARTICLE_RADIUS);
 		}
-
 		this.drawBlobFace();
+		this.getAABB();
 		pop();
 	}
 
