@@ -10,7 +10,7 @@
  * @date 10/28/2022
  */
 
-const MAX_BLOBS = 1; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
+const MAX_BLOBS = 5; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
 const DRAW_BLOB_PARTICLES = true;
 
 const WIDTH = 1024;
@@ -32,16 +32,20 @@ let environment; //    Environment with all rigid edges available as getEdges()
 let isPaused = true;
 let nTimesteps = 0; // #frame-length timesteps taken
 let detectedEdgeEdgeFailure = false; // Halts simulation and turns purple if true -- blobs win!
-
+let ID = 0;
 // Graph paper texture map:
 let bgImage;
 
 function preload() {
 	bgImage = loadImage('graphpaper.jpg');
+	seriousImage = loadImage('serious.png');
+	yaranaika = loadImage('yaranaika.png');
 }
 
 function setup() {
 	createCanvas(WIDTH, HEIGHT);
+	seriousImage.resize(int(seriousImage.width*8 / BLOB_RADIUS), int(seriousImage.height*8 / BLOB_RADIUS));
+	yaranaika.resize(int(yaranaika.width*6 / BLOB_RADIUS), int(yaranaika.height*6 / BLOB_RADIUS));
 	background(100);
 	ellipseMode(RADIUS);
 	environment = new Environment();
@@ -56,7 +60,8 @@ function draw() {
 		// CREATE BLOBS 
 		if (nTimesteps % 10 == 0) { 
 			if (blobs.length < MAX_BLOBS) 
-				createRandomBlob(); // tries to create one if free space available
+				createRandomBlob(ID); // tries to create one if free space available
+				ID += 1;
 		}
 
 		// TIMESTEP!
@@ -448,14 +453,14 @@ class Environment {
 }
 
 // Creates a blob centered at (x,y), and adds things to lists (blobs, edges, particles).
-function createBlob(x, y) {
-	let b = new Blob(vec2(x, y));
+function createBlob(x, y, ID) {
+	let b = new Blob(vec2(x, y), ID);
 	blobs.push(b);
 	return b;
 }
 
 // Tries to create a new blob at the top of the screen. 
-function createRandomBlob() {
+function createRandomBlob(ID) {
 	for (let attempt = 0; attempt < 5; attempt++) {
 		let center = vec2(random(2 * BLOB_RADIUS, WIDTH - 2 * BLOB_RADIUS), BLOB_RADIUS * 1.3); //random horizontal spot
 		// CHECK TO SEE IF NO BLOBS NEARBY:
@@ -467,7 +472,7 @@ function createRandomBlob() {
 		}
 		// if we got here, then center is safe:
 		if (!tooClose) {
-			createBlob(center.x, center.y);
+			createBlob(center.x, center.y, ID);
 			return;
 		}
 	}

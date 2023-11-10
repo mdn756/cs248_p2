@@ -1,8 +1,8 @@
 class Blob {
-	constructor(centerRest) {
+	constructor(centerRest, ID) {
 		this.radius = BLOB_RADIUS;
 		this.centerRest = centerRest; // original location
-
+		this.ID = ID;
 		// CREATE PARTICLES:
 		this.BP = []; //blob particles
 		this.n = BLOB_PARTICLES;
@@ -242,26 +242,36 @@ class Blob {
 
 	drawBlobFace() {
 		push();
-		// TODO: Draw your face here! :D 
 
 		// CENTER OF MASS eyeball for now :/
 		let com = this.centerOfMass();
 		let cov = this.centerOfVelocity();
-		stroke(0);
-		fill(255);
-		circle(com.x-(BLOB_RADIUS*0.5), com.y, 5 * PARTICLE_RADIUS);
-		fill(0);
-		circle(com.x + 0.01 * cov.x + 3 * sin(nTimesteps / 3)-(BLOB_RADIUS*0.5), com.y + 0.01 * cov.y + random(-1, 1), PARTICLE_RADIUS);
+		if (this.ID == 0) {
+			let x = com.x - seriousImage.width / 2;
+    		let y = com.y - seriousImage.height / 2;
 
-		stroke(0);
-		fill(255);
-		circle(com.x+(BLOB_RADIUS*0.5), com.y, 5 * PARTICLE_RADIUS);
-		fill(0);
-		circle(com.x + 0.01 * cov.x + 3 * sin(nTimesteps / 3)+(BLOB_RADIUS*0.5), com.y + 0.01 * cov.y + random(-1, 1), PARTICLE_RADIUS);
+    		image(seriousImage, x, y);
+			
+			//TODO: on collision switch to yaranaika
+			//image(yaranaika, x+12, y+12);
+		}
+		else if (this.ID !== 0) {
+			stroke(0);
+			fill(255);
+			circle(com.x-(BLOB_RADIUS*0.5), com.y, 5 * PARTICLE_RADIUS);
+			fill(0);
+			circle(com.x + 0.01 * cov.x + 3 * sin(nTimesteps / 3)-(BLOB_RADIUS*0.5), com.y + 0.01 * cov.y + random(-1, 1), PARTICLE_RADIUS);
+
+			stroke(0);
+			fill(255);
+			circle(com.x+(BLOB_RADIUS*0.5), com.y, 5 * PARTICLE_RADIUS);
+			fill(0);
+			circle(com.x + 0.01 * cov.x + 3 * sin(nTimesteps / 3)+(BLOB_RADIUS*0.5), com.y + 0.01 * cov.y + random(-1, 1), PARTICLE_RADIUS);
 		
-		noFill();
-		arc(com.x, com.y+(BLOB_RADIUS*0.25), 5 * PARTICLE_RADIUS, 5 * PARTICLE_RADIUS, 0, PI);
-		pop();
+			noFill();
+			arc(com.x, com.y+(BLOB_RADIUS*0.25), 5 * PARTICLE_RADIUS, 5 * PARTICLE_RADIUS, 0, PI);
+			pop();
+		}
 	}
 
 }
