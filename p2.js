@@ -140,6 +140,20 @@ function advanceTime(dt) {
 		acc(particle.p, dt, particle.v)
 }
 
+function isCollision (t, particle, r, q) {
+	if (t > 0 && t < delta_t) {
+		let pt = add(particle.p, mult(particle.v, t));
+		let rt = add(r.p, mult(r.v, t));
+		let qt = add(q.p, mult(q.v, t));
+		let onX = (pt.x >= rt.x && pt.x <= qt.x) || (pt.x >= qt.x && pt.x <= rt.x);
+		let onY = (pt.y >= rt.y && pt.y <= qt.y) || (pt.y >= qt.y && pt.y <= rt.y);
+		if (onX && onY) {
+			return true;
+		}
+	}
+	return false;
+}
+
 function applyPointEdgeCollisionFilter() {
 	// TEMP HACK (remove!): rigid bounce off walls so they don't fly away
 	for (let blob of blobs) blob.nonrigidBounceOnWalls();
@@ -164,17 +178,24 @@ function applyPointEdgeCollisionFilter() {
 			let b = a_dot_w_b + a_w_b_dot;
 			let c = a_w_b;
 			let discriminant = sq(a_dot_w_b + a_w_b_dot) - (4.0 * a_dot_w_b_dot * a_w_b);
+			let t = 0;
 			if (a == 0) {
-				let t = -1.0*c/B;
+				t = -1.0*c/B;
+				if (!isCollision(t, particle, r, q)) return;
 			}
 			if (b == 0 && c < 0) {
-				let t = sqrt(-1*c/a);
+				t = sqrt(-1*c/a);
+				if (!isCollision(t, particle, r, q)) return;
 			}
 			if (discriminant > 0) {
-				let R = -0.5 * (b + (b * sqrt(discriminant)));
+				let R = -0.5 * (b + (Math.sign(b) * sqrt(discriminant)));
 				let t1 = R/a;
 				let t2 = c/R;
+				if (isCollision(t1, particle, r, q)) t = t1;
+				else if (isCollision(t2, particle, r, q)) t = t2;
+				else return;
 			}
+			print("is collision");
 			// which t to use after this?
 
 
@@ -518,7 +539,9 @@ function clamp(n, low, high) {
 function add(v, w) {
 	return p5.Vector.add(v, w);
 }
-
+function mult(v, w) {
+	return p5.Vector.mult(v, w);
+}
 function sub(v, w) {
 	return p5.Vector.sub(v, w);
 }
