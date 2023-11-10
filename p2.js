@@ -10,7 +10,7 @@
  * @date 10/28/2022
  */
 
-const MAX_BLOBS = 3; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
+const MAX_BLOBS = 1; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
 const DRAW_BLOB_PARTICLES = true;
 
 const WIDTH = 1024;
@@ -141,7 +141,38 @@ function applyPointEdgeCollisionFilter() {
 
 	// TODO: Process all point-edge CCD impulses 
 	// FIRST: Just rigid edges.
-	let edgesToCheck = environment.getEdges();
+	for (let edge of environment.getEdges()) {
+		// colinearity check to find a time and position
+		for (let particle of particles) {
+			let delta_t = 0.01;
+			let q = edge.q;
+			let r = edge.r;
+			let A = sub(r.p, q.p);
+			let B = sub(particle.p, q.p);
+			let a_dot = sub(r.v, q.v);
+			let b_dot = sub(particle.v, q.v);
+			let a_dot_w_b_dot = (a_dot.x * b_dot.y) - (a_dot.y * b_dot.x);
+			let a_dot_w_b = (a_dot.x * B.y) - (a_dot.y * B.x);
+			let a_w_b_dot = (A.x * b_dot.y) - (A.y * b_dot.x);
+			let a_w_b = (A.x * B.y) - (A.y * B.x);
+			let a = a_dot_w_b_dot;
+			let b = a_dot_w_b + a_w_b_dot;
+			let c = a_w_b;
+			let discriminant = sq(a_dot_w_b + a_w_b_dot) - (4.0 * a_dot_w_b_dot * a_w_b);
+			if (a == 0) {
+				
+			}
+			if (discriminant > 0) {
+				let R = -0.5 * (b + (b * sqrt(discriminant)));
+				let t1 = R/a;
+				let t2 = c/R;
+			}
+			// which t to use after this?
+
+
+		}
+		// 
+	}
 	// SECOND: All rigid + blob edges (once you get this ^^ working)
 	// edgesToCheck = edges;
 
@@ -176,13 +207,13 @@ function checkEdgeEdgeOverlap(ei, ej) {
 
 // Computes penalty forces between all point-edge pairs
 function gatherParticleForces_Penalty() {
-
-	let warmup = false;
-	if (warmup) { // First just consider rigid environment edges:
+	let k =350.0;
+	// let warmup = true;
+	// if (warmup) { // First just consider rigid environment edges:
+	for (let blob of blobs) {
 		for (let edge of environment.getEdges()) {
 			// TODO (part1): Apply point-edge force (if pt not on edge!)
-			let k =300.0;
-			for (let particle of particles) {
+			for (let particle of blob.BP) {
 				// Calculate the vector from the particle to the edge
 				let q = edge.q;
 				let r = edge.r;
@@ -214,10 +245,8 @@ function gatherParticleForces_Penalty() {
 				}
             }
 		}
-	} else { // Consider all rigid + blob edges:
-		for (let edge of edges) {
-			let k =300.0;
-			for (let particle of particles) {
+		for (let edge of blob.BE) {
+			for (let particle of environment.getParticles()) {
 				// Calculate the vector from the particle to the edge
 				let q = edge.q;
 				let r = edge.r;
@@ -237,7 +266,7 @@ function gatherParticleForces_Penalty() {
 				let distance = n.mag();
 
 				// Specify a threshold distance, below which penalty forces are applied
-				let d0 = 30.0; // Adjust this threshold as needed
+				let d0 = 5.0; // Adjust this threshold as needed
 				
 				// Apply a penalty force if the particle is too close to the edge
 				if (distance < d0) {
@@ -245,13 +274,14 @@ function gatherParticleForces_Penalty() {
 					let penaltyForce = createVector(particle.p.x-closestPoint.x, particle.p.y-closestPoint.y);
 					penaltyForce.normalize();
 					penaltyForce.mult(penaltyForceMagnitude);
-					particle.f.add(penaltyForce);
+					edge.q.f.add(penaltyForce);
+					edge.r.f.add(penaltyForce);
 				}
-            }
-
+			}
+		}
 			// TODO (part2): Apply point-edge force (if pt not on edge!)
-		}
 	}
+	// }
 }
 
 function gatherParticleForces_Gravity() {
@@ -338,7 +368,10 @@ class Environment {
 	getEdges() {
 		return this.envEdges;
 	}
-
+	// Returns all rigid-environment edges.
+	getParticles() {
+		return this.envParticles;
+	}
 	// Creates a lone rigid edge.
 	createEnvEdge(x0, y0, x1, y1) {
 		let p0 = createParticle(x0, y0);
