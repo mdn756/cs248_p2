@@ -160,7 +160,10 @@ function applyPointEdgeCollisionFilter() {
 			let c = a_w_b;
 			let discriminant = sq(a_dot_w_b + a_w_b_dot) - (4.0 * a_dot_w_b_dot * a_w_b);
 			if (a == 0) {
-				
+				let t = -1.0*c/B;
+			}
+			if (b == 0 && c < 0) {
+				let t = sqrt(-1*c/a);
 			}
 			if (discriminant > 0) {
 				let R = -0.5 * (b + (b * sqrt(discriminant)));
