@@ -7,10 +7,12 @@
  * Good luck!!
  * 
  * @author Doug L. James <djames@cs.stanford.edu> 
+ * Sarah Teaw sarahlst@stanford.edu
+ * Maxime Nee mdn756@stanford.edu
  * @date 10/28/2022
  */
 
-const MAX_BLOBS = 1; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
+const MAX_BLOBS = 2; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
 const DRAW_BLOB_PARTICLES = true;
 
 const WIDTH = 1024;
@@ -21,7 +23,7 @@ const BLOB_PARTICLES = 12; // 12 (F22)
 const BLOB_RADIUS = WIDTH / 25 ;
 
 const STIFFNESS_STRETCH = 10000.0; // TODO: Set as you wish
-const STIFFNESS_BEND = 10000.0; //    TODO: Set as you wish
+const STIFFNESS_BEND = 100000.0; //    TODO: Set as you wish
 const STIFFNESS_AREA = 1 * 3.14*BLOB_RADIUS*BLOB_RADIUS/5000; //    TODO: Set as you wish
 //////// IMPORTANT ARRAYS OF THINGS /////////
 let particles = []; // All particles in the scene (rigid + blobs) 
@@ -119,7 +121,7 @@ function advanceTime(dt) {
 		}
 
 
-		// gatherParticleForces_Penalty();
+		gatherParticleForces_Penalty();
 
 		// Mouse force (modify if you want):
 		applyMouseForce();
@@ -142,11 +144,9 @@ function advanceTime(dt) {
 	verifyNoEdgeEdgeOverlap();
 }
 
-function isCollision (t, particle, r, q) {
+function isCollision(t, particle, r, q) {
 	let delta_t = 0.01;
-	print("t: "+t);
 	if (t < delta_t) {
-		// print("collinear");
 		let pt = particle.p.copy();
 		let rt = r.p.copy();
 		let qt = q.p.copy();
@@ -201,7 +201,6 @@ function applyPointEdgeCollisionFilter() {
 						let onX = (pt.x >= (rt.x - 2.0) && pt.x <= (qt.x+2.0)) || (pt.x >= (qt.x-2.0) && pt.x <= (rt.x+2.0));
 						let onY = (pt.y >= (rt.y - 2.0) && pt.y <= (qt.y+2.0)) || (pt.y >= (qt.y-2.0) && pt.y <= (rt.y+2.0));
 						if (onX && onY) {
-							print("t: "+t);
 							let pr = sub(pt, rt).mag();
 							let pq = sub(qt, pt).mag();
 							let rq = sub(rt, qt).mag();
@@ -225,6 +224,76 @@ function applyPointEdgeCollisionFilter() {
 	}
 	// SECOND: All rigid + blob edges (once you get this ^^ working)
 	// edgesToCheck = edges;
+	for (let blob of blobs) {
+		// colinearity check to find a time and position
+		for (let edge of blob.BE) {
+			for (let particle of environment.getParticles()){
+				let q = edge.q;
+				let r = edge.r;
+				let A = sub(r.p, q.p);
+				let B = sub(particle.p, q.p);
+				let a_dot = sub(r.v, q.v);
+				let b_dot = sub(particle.v, q.v);
+				let a_dot_w_b_dot = (a_dot.x * b_dot.y) - (a_dot.y * b_dot.x);
+				let a_dot_w_b = (a_dot.x * B.y) - (a_dot.y * B.x);
+				let a_w_b_dot = (A.x * b_dot.y) - (A.y * b_dot.x);
+				let a_w_b = (A.x * B.y) - (A.y * B.x);
+				let a = a_dot_w_b_dot;
+				let b = a_dot_w_b + a_w_b_dot;
+				let c = a_w_b;
+				let discriminant = sq(b) - (4.0 * a * c);
+				let t = 0;
+				let delta_t = 0.01;
+				if (a == 0) {
+					t = -1.0*c/b;
+				}
+				if (b == 0) {
+					if (c > 0) return;
+					t = sqrt(-c/a);
+				}
+				if (discriminant > 0) {
+					let factor = -0.5 * (b + sign(b)*sqrt(discriminant));
+					let t1 = factor/a;
+					let t2 = c/factor;
+					if (isCollision(t1, particle, r, q)) t = t1;
+					else if (isCollision(t2, particle, r, q)) t = t2;
+					else return;
+				}
+				if (t < delta_t && t > 0) {
+					let pt = particle.p.copy();
+					let rt = r.p.copy();
+					let qt = q.p.copy();
+					acc(pt, t, particle.v);
+					acc(rt, t, r.v);
+					acc(qt, t, q.v);
+					let onX = (pt.x >= (rt.x - 2.0) && pt.x <= (qt.x+2.0)) || (pt.x >= (qt.x-2.0) && pt.x <= (rt.x+2.0));
+					let onY = (pt.y >= (rt.y - 2.0) && pt.y <= (qt.y+2.0)) || (pt.y >= (qt.y-2.0) && pt.y <= (rt.y+2.0));
+					if (onX && onY) {
+						let pr = sub(pt, rt).mag();
+						let pq = sub(qt, pt).mag();
+						let rq = sub(rt, qt).mag();
+						let alpha = pr/rq;
+						let beta = pq/rq;
+						let c_dot = q.p.copy();
+						acc(c_dot, sub(r.v, q.v), alpha);
+						let contact_v = sub(pt, c_dot);
+						let n0 = createVector(q.p.y-r.p.y, r.p.x-q.p.x);
+						n0.normalize();
+						let n_hat = mult(n0, sign(-1*dot(contact_v, n0)));
+						let v_n = dot(sub(particle.v, c_dot), n_hat);
+						let m_eff = 0;
+						if (!particle.pin) m_eff += 1.0/particle.mass;
+						if (!r.pin) m_eff += beta*beta/r.mass;
+						if (!q.pin) m_eff += alpha*alpha/q.mass;
+						let gamma = v_n*-1.0*(1+epsilon)*(m_eff);
+						acc(q.v, -beta*gamma/q.mass, n_hat);
+						acc(r.v, -alpha*gamma/r.mass, n_hat);
+					}
+				}	
+			}
+
+		}
+	}
 
 	// Initially just brute force all-pairs checks, later use bounding volumes or better broad phase.
 
@@ -277,7 +346,7 @@ function triSign(a, b, c) {
 
 // Computes penalty forces between all point-edge pairs
 function gatherParticleForces_Penalty() {
-	let k =300.0;
+	let k =1000.0;
 	// let warmup = true;
 	// if (warmup) { // First just consider rigid environment edges:
 	for (let blob of blobs) {
@@ -303,11 +372,10 @@ function gatherParticleForces_Penalty() {
 				let distance = n.mag();
 
 				// Specify a threshold distance, below which penalty forces are applied
-				let d0 = 30.0; // Adjust this threshold as needed
+				let d0 = 15.0; // Adjust this threshold as needed
 				
 				// Apply a penalty force if the particle is too close to the edge
 				if (distance < d0) {
-					print("collide");
 					let penaltyForceMagnitude = (d0 - distance) * (k); // Adjust 'k' as needed
 					let penaltyForce = createVector(particle.p.x-closestPoint.x, particle.p.y-closestPoint.y);
 					penaltyForce.normalize();
@@ -337,12 +405,11 @@ function gatherParticleForces_Penalty() {
 				let distance = n.mag();
 
 				// Specify a threshold distance, below which penalty forces are applied
-				let d0 = 5.0; // Adjust this threshold as needed
+				let d0 = 15.0; // Adjust this threshold as needed
 				
 				// Apply a penalty force if the particle is too close to the edge
 				if (distance < d0) {
-					print("push");
-					let penaltyForceMagnitude = (d0 - distance) * (k); // Adjust 'k' as needed
+					let penaltyForceMagnitude = (d0 - distance) * (-k); // Adjust 'k' as needed
 					let penaltyForce = createVector(particle.p.x-closestPoint.x, particle.p.y-closestPoint.y);
 					penaltyForce.normalize();
 					penaltyForce.mult(penaltyForceMagnitude);
@@ -350,6 +417,47 @@ function gatherParticleForces_Penalty() {
 					edge.r.f.add(penaltyForce);
 				}
 			}
+		}
+		for (let blob2 of blobs) {
+			if (blob2 == blob) {
+				continue;
+			}
+			for (let edge of blob2.BE) {
+				// TODO (part1): Apply point-edge force (if pt not on edge!)
+				for (let particle of blob.BP) {
+					// Calculate the vector from the particle to the edge
+					let q = edge.q;
+					let r = edge.r;
+					let edgeVector = sub(r.p, q.p);
+					let particleToEdge = sub(particle.p, q.p);
+					
+					// Calculate the projection of particleToEdge onto edgeVector
+					let projection = edgeVector.dot(particleToEdge) / edgeVector.magSq();
+					
+					// Calculate the closest point on the edge to the particle
+					let closestPoint;
+					projection = constrain(projection, 0, 1);
+					closestPoint = add(q.p, p5.Vector.mult(edgeVector, projection));
+					
+					// Calculate the distance between the particle and the closest point on the edge
+					let n = sub(particle.p, closestPoint);
+					let distance = n.mag();
+	
+					// Specify a threshold distance, below which penalty forces are applied
+					let d0 = 15.0; // Adjust this threshold as needed
+					
+					// Apply a penalty force if the particle is too close to the edge
+					if (distance < d0) {
+						let penaltyForceMagnitude = (d0 - distance) * (k); // Adjust 'k' as needed
+						let penaltyForce = createVector(particle.p.x-closestPoint.x, particle.p.y-closestPoint.y);
+						penaltyForce.normalize();
+						penaltyForce.mult(penaltyForceMagnitude);
+						particle.f.add(penaltyForce);
+					}
+				}
+			}
+	
+
 		}
 			// TODO (part2): Apply point-edge force (if pt not on edge!)
 	}
@@ -536,7 +644,7 @@ function createBlob(x, y, ID) {
 // Tries to create a new blob at the top of the screen. 
 function createRandomBlob(ID) {
 	for (let attempt = 0; attempt < 5; attempt++) {
-		let center = vec2(random(2 * BLOB_RADIUS, WIDTH - 2 * BLOB_RADIUS), BLOB_RADIUS * 1.3); //random horizontal spot
+		let center = vec2(random(2 * BLOB_RADIUS, WIDTH - 2 * BLOB_RADIUS), BLOB_RADIUS * 2.3); //random horizontal spot
 		// CHECK TO SEE IF NO BLOBS NEARBY:
 		let tooClose = false;
 		for (let blob of blobs) {
