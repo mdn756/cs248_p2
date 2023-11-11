@@ -7,7 +7,7 @@ class Blob {
 		this.BP = []; //blob particles
 		this.n = BLOB_PARTICLES;
         this.restArea = 0;
-		let v0 = vec2(random(-100, 100), random(200, 220));
+		let v0 = vec2(random(-100, 100), random(50, 70));
 		for (let i = 0; i < this.n; i++) {
 			let xi = this.radius * cos(i / this.n * TWO_PI) + centerRest.x;
 			let yi = this.radius * sin(i / this.n * TWO_PI) + centerRest.y;
@@ -135,15 +135,28 @@ class Blob {
 		let maxX = 0;
 		let maxY = 0;
 
-		for (let i = 0; i < this.n; i++) { 
+		//with next point added
+		for (let i = 0; i < this.n; i++) {  
+			if (this.BP[i].p.x + deltaTime/1000*this.BP[i].v.x < minX) {
+				minX = this.BP[i].p.x + deltaTime/1000*this.BP[i].v.x; 
+			}
 			if (this.BP[i].p.x < minX) {
-				minX = this.BP[i].p.x; 
+				minX = this.BP[i].p.x ; 
+			}
+			if (this.BP[i].p.x + deltaTime/1000*this.BP[i].v.x > maxX) {
+				maxX = this.BP[i].p.x + deltaTime/1000*this.BP[i].v.x; 
 			}
 			if (this.BP[i].p.x > maxX) {
 				maxX = this.BP[i].p.x; 
 			}
+			if (this.BP[i].p.y + deltaTime/1000*this.BP[i].v.y < minY) {
+				minY = this.BP[i].p.y + deltaTime/1000*this.BP[i].v.y; 
+			}
 			if (this.BP[i].p.y < minY) {
 				minY = this.BP[i].p.y; 
+			}
+			if (this.BP[i].p.y + deltaTime/1000*this.BP[i].v.y > maxY) {
+				maxY = this.BP[i].p.y + deltaTime/1000*this.BP[i].v.y; 
 			}
 			if (this.BP[i].p.y > maxY) {
 				maxY = this.BP[i].p.y; 
@@ -309,5 +322,27 @@ class Edge {
 		let a = this.q.p;
 		let b = this.r.p;
 		line(a.x, a.y, b.x, b.y);
+		
+		let AABB = this.getBV()
+		noFill();
+		stroke(0, 0, 255);
+		rect(AABB.minX, AABB.minY, AABB.maxX - AABB.minX, AABB.maxY - AABB.minY);
+
+	}
+	getBV() {
+		let a = this.q.p;
+		let b = this.r.p;
+		let d = 10;
+		let minX = min(a.x, b.x) - d;
+		let minY = min(a.y, b.y) - d;
+		let maxX = max(a.x, b.x) + d;
+		let maxY = max(a.y, b.y) + d;
+		let AABB = {
+			minX: minX,
+			minY: minY,
+			maxX: maxX,
+			maxY: maxY
+		} 
+		return AABB;
 	}
 }

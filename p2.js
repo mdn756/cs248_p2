@@ -393,7 +393,13 @@ class Particle {
 	}
 }
 
+function drawAABB(ei) {
+	// TODO: Implement robust-enough test. 
+	let a = ei.q.p;
+	let b = ei.r.p;
 
+	return false;
+}
 
 // RIGID ENVIRONMENT COMPOSED OF LINE SEGMENTS (pinned Edges)
 class Environment {
@@ -488,6 +494,7 @@ class Environment {
 		this.envParticles.push(p2);
 		this.envEdges.push(e01);
 		this.envEdges.push(e12);
+			
 	}
 
 	// Updates any moveable rigid elements
