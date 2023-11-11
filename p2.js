@@ -10,7 +10,7 @@
  * @date 10/28/2022
  */
 
-const MAX_BLOBS = 5; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
+const MAX_BLOBS = 1; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
 const DRAW_BLOB_PARTICLES = true;
 
 const WIDTH = 1024;
@@ -138,6 +138,8 @@ function advanceTime(dt) {
 	// Update positions:
 	for (let particle of particles)
 		acc(particle.p, dt, particle.v)
+
+	verifyNoEdgeEdgeOverlap();
 }
 
 function applyPointEdgeCollisionFilter() {
@@ -210,7 +212,27 @@ function verifyNoEdgeEdgeOverlap() {
 
 function checkEdgeEdgeOverlap(ei, ej) {
 	// TODO: Implement robust-enough test. 
+	let a = ei.q.p;
+	let b = ei.r.p;
+	let c = ej.q.p;
+	let d = ej.r.p;
+
+	if (triSign(c,d,a)*triSign(c,d,b) < 0) {
+		if (triSign(a,b,c)*triSign(a,b,d) < 0) {
+			return true;
+		}
+	}
 	return false;
+}
+
+function triSign(a, b, c) {
+	let dx1 = b.x - a.x;
+	let dx2 = c.x - b.x;
+	let dy1 = b.y - a.y;
+	let dy2 = c.y - b.y;
+
+	let sign = -dy1*dx2 + dy2*dx1;
+	return sign
 }
 
 // Computes penalty forces between all point-edge pairs
