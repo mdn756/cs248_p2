@@ -119,7 +119,7 @@ function advanceTime(dt) {
 		}
 
 
-		gatherParticleForces_Penalty();
+		// gatherParticleForces_Penalty();
 
 		// Mouse force (modify if you want):
 		applyMouseForce();
@@ -143,12 +143,18 @@ function advanceTime(dt) {
 }
 
 function isCollision (t, particle, r, q) {
-	if (t > 0 && t < delta_t) {
-		let pt = add(particle.p, mult(particle.v, t));
-		let rt = add(r.p, mult(r.v, t));
-		let qt = add(q.p, mult(q.v, t));
-		let onX = (pt.x >= rt.x && pt.x <= qt.x) || (pt.x >= qt.x && pt.x <= rt.x);
-		let onY = (pt.y >= rt.y && pt.y <= qt.y) || (pt.y >= qt.y && pt.y <= rt.y);
+	let delta_t = 0.01;
+	print("t: "+t);
+	if (t < delta_t) {
+		// print("collinear");
+		let pt = particle.p.copy();
+		let rt = r.p.copy();
+		let qt = q.p.copy();
+		acc(pt, t, particle.v);
+		acc(rt, t, r.v);
+		acc(qt, t, q.v);
+		let onX = (pt.x >= (rt.x - 2.0) && pt.x <= (qt.x+2.0)) || (pt.x >= (qt.x-2.0) && pt.x <= (rt.x+2.0));
+		let onY = (pt.y >= (rt.y - 2.0) && pt.y <= (qt.y+2.0)) || (pt.y >= (qt.y-2.0) && pt.y <= (rt.y+2.0));
 		if (onX && onY) {
 			return true;
 		}
@@ -157,6 +163,7 @@ function isCollision (t, particle, r, q) {
 }
 
 function applyPointEdgeCollisionFilter() {
+	let epsilon = 0.5;
 	// TEMP HACK (remove!): rigid bounce off walls so they don't fly away
 	for (let blob of blobs) blob.nonrigidBounceOnWalls();
 
@@ -164,45 +171,57 @@ function applyPointEdgeCollisionFilter() {
 	// FIRST: Just rigid edges.
 	for (let edge of environment.getEdges()) {
 		// colinearity check to find a time and position
-		for (let particle of particles) {
-			let delta_t = 0.01;
-			let q = edge.q;
-			let r = edge.r;
-			let A = sub(r.p, q.p);
-			let B = sub(particle.p, q.p);
-			let a_dot = sub(r.v, q.v);
-			let b_dot = sub(particle.v, q.v);
-			let a_dot_w_b_dot = (a_dot.x * b_dot.y) - (a_dot.y * b_dot.x);
-			let a_dot_w_b = (a_dot.x * B.y) - (a_dot.y * B.x);
-			let a_w_b_dot = (A.x * b_dot.y) - (A.y * b_dot.x);
-			let a_w_b = (A.x * B.y) - (A.y * B.x);
-			let a = a_dot_w_b_dot;
-			let b = a_dot_w_b + a_w_b_dot;
-			let c = a_w_b;
-			let discriminant = sq(a_dot_w_b + a_w_b_dot) - (4.0 * a_dot_w_b_dot * a_w_b);
-			let t = 0;
-			if (a == 0) {
-				t = -1.0*c/B;
-				if (!isCollision(t, particle, r, q)) return;
+		for (let blob of blobs) {
+			for (let particle of blob.BP){
+				let q = edge.q;
+				let r = edge.r;
+				let A = sub(r.p, q.p);
+				let B = sub(particle.p, q.p);
+				let a_dot = sub(r.v, q.v);
+				let b_dot = sub(particle.v, q.v);
+				let a_dot_w_b_dot = (a_dot.x * b_dot.y) - (a_dot.y * b_dot.x);
+				let a_dot_w_b = (a_dot.x * B.y) - (a_dot.y * B.x);
+				let a_w_b_dot = (A.x * b_dot.y) - (A.y * b_dot.x);
+				let a_w_b = (A.x * B.y) - (A.y * B.x);
+				let a = a_dot_w_b_dot;
+				let b = a_dot_w_b + a_w_b_dot;
+				let c = a_w_b;
+				let discriminant = sq(b) - (4.0 * a * c);
+				let t = 0;
+				if (a == 0) {
+					t = -1.0*c/b;
+					let delta_t = 0.01;
+					if (t < delta_t && t > 0) {
+						let pt = particle.p.copy();
+						let rt = r.p.copy();
+						let qt = q.p.copy();
+						acc(pt, t, particle.v);
+						acc(rt, t, r.v);
+						acc(qt, t, q.v);
+						let onX = (pt.x >= (rt.x - 2.0) && pt.x <= (qt.x+2.0)) || (pt.x >= (qt.x-2.0) && pt.x <= (rt.x+2.0));
+						let onY = (pt.y >= (rt.y - 2.0) && pt.y <= (qt.y+2.0)) || (pt.y >= (qt.y-2.0) && pt.y <= (rt.y+2.0));
+						if (onX && onY) {
+							print("t: "+t);
+							let pr = sub(pt, rt).mag();
+							let pq = sub(qt, pt).mag();
+							let rq = sub(rt, qt).mag();
+							let alpha = pr/rq;
+							let beta = pq/rq;
+							let c_dot = q.p.copy();
+							acc(c_dot, sub(r.v, q.v), alpha);
+							let contact_v = sub(pt, c_dot);
+							let n0 = createVector(q.p.y-r.p.y, r.p.x-q.p.x);
+							n0.normalize();
+							let n_hat = mult(n0, sign(-1*dot(contact_v, n0)));
+							let v_n = dot(sub(particle.v, c_dot), n_hat);
+							let m_eff = 1.0/particle.mass;
+							let gamma = v_n*-1.0*(1+epsilon)*m_eff;
+							acc(particle.v, gamma/particle.mass, n_hat);
+						}
+					}
+				}
 			}
-			if (b == 0 && c < 0) {
-				t = sqrt(-1*c/a);
-				if (!isCollision(t, particle, r, q)) return;
-			}
-			if (discriminant > 0) {
-				let R = -0.5 * (b + (Math.sign(b) * sqrt(discriminant)));
-				let t1 = R/a;
-				let t2 = c/R;
-				if (isCollision(t1, particle, r, q)) t = t1;
-				else if (isCollision(t2, particle, r, q)) t = t2;
-				else return;
-			}
-			print("is collision");
-			// which t to use after this?
-
-
 		}
-		// 
 	}
 	// SECOND: All rigid + blob edges (once you get this ^^ working)
 	// edgesToCheck = edges;
@@ -258,7 +277,7 @@ function triSign(a, b, c) {
 
 // Computes penalty forces between all point-edge pairs
 function gatherParticleForces_Penalty() {
-	let k =350.0;
+	let k =300.0;
 	// let warmup = true;
 	// if (warmup) { // First just consider rigid environment edges:
 	for (let blob of blobs) {
@@ -288,6 +307,7 @@ function gatherParticleForces_Penalty() {
 				
 				// Apply a penalty force if the particle is too close to the edge
 				if (distance < d0) {
+					print("collide");
 					let penaltyForceMagnitude = (d0 - distance) * (k); // Adjust 'k' as needed
 					let penaltyForce = createVector(particle.p.x-closestPoint.x, particle.p.y-closestPoint.y);
 					penaltyForce.normalize();
@@ -321,6 +341,7 @@ function gatherParticleForces_Penalty() {
 				
 				// Apply a penalty force if the particle is too close to the edge
 				if (distance < d0) {
+					print("push");
 					let penaltyForceMagnitude = (d0 - distance) * (k); // Adjust 'k' as needed
 					let penaltyForce = createVector(particle.p.x-closestPoint.x, particle.p.y-closestPoint.y);
 					penaltyForce.normalize();
