@@ -145,31 +145,27 @@ function advanceTime(dt) {
 	isBVOverlap();
 }
 
-function isBVOverlap() {
+function isBVOverlap(obj1, obj2) {
 	//blob against blob
-	for (let i = 0; i < blobs.length; i++) {
-		for (let j = i+1; j < blobs.length; j++) {
-			BV1 = blobs[i].getAABB();
-			BV2 = blobs[j].getAABB();
-			if (BV1.maxX >= BV2.minX && BV1.minX <= BV2.maxX) { //check x
-				if (BV1.maxY >= BV2.minY && BV1.minY <= BV2.maxY) { //check y
-					//isPaused = true;
-					return true;
-				}
-			}
-		}
+	if (obj1 instanceof Blob && obj2 instanceof Blob){
+		BV1 = obj1.getAABB();
+		BV2 = obj2.getAABB();
 	}
 	// blob against env edges
-	for (let i = 0; i < blobs.length; i++) {
-		for (let j = 1; j < environment.envEdges.length; j++) {
-			BV1 = blobs[i].getAABB();
-			BV2 = environment.envEdges[j].getBV();
-			if (BV1.maxX >= BV2.minX && BV1.minX <= BV2.maxX) { //check x
-				if (BV1.maxY >= BV2.minY && BV1.minY <= BV2.maxY) { //check y
-					//isPaused = true;
-					return true;
-				}
-			}
+	else if (obj1 instanceof Blob && obj2 instanceof Edge) {
+		BV1 = obj1.getAABB();
+		BV2 = environment.obj2.getBV();
+	}
+	else if (obj1 instanceof Edge && obj2 instanceof Blob) {
+		BV1 = environment.obj1.getBV();
+		BV2 = obj2.getAABB();
+	}
+
+		
+	if (BV1.maxX >= BV2.minX && BV1.minX <= BV2.maxX) { //check x
+		if (BV1.maxY >= BV2.minY && BV1.minY <= BV2.maxY) { //check y
+			//isPaused = true;
+			return true;
 		}
 	}
 
