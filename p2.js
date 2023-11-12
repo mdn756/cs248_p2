@@ -147,18 +147,19 @@ function advanceTime(dt) {
 
 function isBVOverlap(obj1, obj2) {
 	//blob against blob
+	let BV1, BV2;
 	if (obj1 instanceof Blob && obj2 instanceof Blob){
-		let BV1 = obj1.getAABB();
-		let BV2 = obj2.getAABB();
+		BV1 = obj1.getAABB();
+		BV2 = obj2.getAABB();
 	}
 	// blob against env edges
 	else if (obj1 instanceof Blob && obj2 instanceof Edge) {
-		let BV1 = obj1.getAABB();
-		let BV2 = environment.obj2.getBV();
+		BV1 = obj1.getAABB();
+		BV2 = environment.obj2.getBV();
 	}
 	else if (obj1 instanceof Edge && obj2 instanceof Blob) {
-		let BV1 = environment.obj1.getBV();
-		let BV2 = obj2.getAABB();
+		BV1 = environment.obj1.getBV();
+		BV2 = obj2.getAABB();
 	}
 
 		
@@ -200,25 +201,97 @@ function applyPointEdgeCollisionFilter() {
 	for (let edge of environment.getEdges()) {
 		// colinearity check to find a time and position
 		for (let blob of blobs) {
-			for (let particle of blob.BP){
-				let q = edge.q;
-				let r = edge.r;
-				let A = sub(r.p, q.p);
-				let B = sub(particle.p, q.p);
-				let a_dot = sub(r.v, q.v);
-				let b_dot = sub(particle.v, q.v);
-				let a_dot_w_b_dot = (a_dot.x * b_dot.y) - (a_dot.y * b_dot.x);
-				let a_dot_w_b = (a_dot.x * B.y) - (a_dot.y * B.x);
-				let a_w_b_dot = (A.x * b_dot.y) - (A.y * b_dot.x);
-				let a_w_b = (A.x * B.y) - (A.y * B.x);
-				let a = a_dot_w_b_dot;
-				let b = a_dot_w_b + a_w_b_dot;
-				let c = a_w_b;
-				let discriminant = sq(b) - (4.0 * a * c);
-				let t = 0;
-				if (a == 0) {
-					t = -1.0*c/b;
+			if (isBVOverlap(edge, blob)) {
+				for (let particle of blob.BP){
+					let q = edge.q;
+					let r = edge.r;
+					let A = sub(r.p, q.p);
+					let B = sub(particle.p, q.p);
+					let a_dot = sub(r.v, q.v);
+					let b_dot = sub(particle.v, q.v);
+					let a_dot_w_b_dot = (a_dot.x * b_dot.y) - (a_dot.y * b_dot.x);
+					let a_dot_w_b = (a_dot.x * B.y) - (a_dot.y * B.x);
+					let a_w_b_dot = (A.x * b_dot.y) - (A.y * b_dot.x);
+					let a_w_b = (A.x * B.y) - (A.y * B.x);
+					let a = a_dot_w_b_dot;
+					let b = a_dot_w_b + a_w_b_dot;
+					let c = a_w_b;
+					let discriminant = sq(b) - (4.0 * a * c);
+					let t = 0;
+					if (a == 0) {
+						t = -1.0*c/b;
+						let delta_t = 0.01;
+						if (t < delta_t && t > 0) {
+							let pt = particle.p.copy();
+							let rt = r.p.copy();
+							let qt = q.p.copy();
+							acc(pt, t, particle.v);
+							acc(rt, t, r.v);
+							acc(qt, t, q.v);
+							let onX = (pt.x >= (rt.x - 2.0) && pt.x <= (qt.x+2.0)) || (pt.x >= (qt.x-2.0) && pt.x <= (rt.x+2.0));
+							let onY = (pt.y >= (rt.y - 2.0) && pt.y <= (qt.y+2.0)) || (pt.y >= (qt.y-2.0) && pt.y <= (rt.y+2.0));
+							if (onX && onY) {
+								let pr = sub(pt, rt).mag();
+								let pq = sub(qt, pt).mag();
+								let rq = sub(rt, qt).mag();
+								let alpha = pr/rq;
+								let beta = pq/rq;
+								let c_dot = q.p.copy();
+								acc(c_dot, sub(r.v, q.v), alpha);
+								let contact_v = sub(pt, c_dot);
+								let n0 = createVector(q.p.y-r.p.y, r.p.x-q.p.x);
+								n0.normalize();
+								let n_hat = mult(n0, sign(-1*dot(contact_v, n0)));
+								let v_n = dot(sub(particle.v, c_dot), n_hat);
+								let m_eff = 1.0/particle.mass;
+								let gamma = v_n*-1.0*(1+epsilon)*m_eff;
+								acc(particle.v, gamma/particle.mass, n_hat);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	// SECOND: All rigid + blob edges (once you get this ^^ working)
+	// edgesToCheck = edges;
+	for (let blob of blobs) {
+		// colinearity check to find a time and position
+		for (let envedge of environment.getEdges()){
+			if (isBVOverlap(blob, envedge)){
+				for (let edge of blob.BE) {
+					let particle = envedge.r;
+					let q = edge.q;
+					let r = edge.r;
+					let A = sub(r.p, q.p);
+					let B = sub(particle.p, q.p);
+					let a_dot = sub(r.v, q.v);
+					let b_dot = sub(particle.v, q.v);
+					let a_dot_w_b_dot = (a_dot.x * b_dot.y) - (a_dot.y * b_dot.x);
+					let a_dot_w_b = (a_dot.x * B.y) - (a_dot.y * B.x);
+					let a_w_b_dot = (A.x * b_dot.y) - (A.y * b_dot.x);
+					let a_w_b = (A.x * B.y) - (A.y * B.x);
+					let a = a_dot_w_b_dot;
+					let b = a_dot_w_b + a_w_b_dot;
+					let c = a_w_b;
+					let discriminant = sq(b) - (4.0 * a * c);
+					let t = 0;
 					let delta_t = 0.01;
+					if (a == 0) {
+						t = -1.0*c/b;
+					}
+					if (b == 0) {
+						if (c > 0) return;
+						t = sqrt(-c/a);
+					}
+					if (discriminant > 0) {
+						let factor = -0.5 * (b + sign(b)*sqrt(discriminant));
+						let t1 = factor/a;
+						let t2 = c/factor;
+						if (isCollision(t1, particle, r, q)) t = t1;
+						else if (isCollision(t2, particle, r, q)) t = t2;
+						else return;
+					}
 					if (t < delta_t && t > 0) {
 						let pt = particle.p.copy();
 						let rt = r.p.copy();
@@ -241,90 +314,19 @@ function applyPointEdgeCollisionFilter() {
 							n0.normalize();
 							let n_hat = mult(n0, sign(-1*dot(contact_v, n0)));
 							let v_n = dot(sub(particle.v, c_dot), n_hat);
-							let m_eff = 1.0/particle.mass;
-							let gamma = v_n*-1.0*(1+epsilon)*m_eff;
-							acc(particle.v, gamma/particle.mass, n_hat);
+							let m_eff = 0;
+							if (!particle.pin) m_eff += 1.0/particle.mass;
+							if (!r.pin) m_eff += beta*beta/r.mass;
+							if (!q.pin) m_eff += alpha*alpha/q.mass;
+							let gamma = v_n*-1.0*(1+epsilon)*(m_eff);
+							acc(q.v, -beta*gamma/q.mass, n_hat);
+							acc(r.v, -alpha*gamma/r.mass, n_hat);
 						}
-					}
+					}	
 				}
 			}
 		}
 	}
-	// SECOND: All rigid + blob edges (once you get this ^^ working)
-	// edgesToCheck = edges;
-	for (let blob of blobs) {
-		// colinearity check to find a time and position
-		for (let edge of blob.BE) {
-			for (let particle of environment.getParticles()){
-				let q = edge.q;
-				let r = edge.r;
-				let A = sub(r.p, q.p);
-				let B = sub(particle.p, q.p);
-				let a_dot = sub(r.v, q.v);
-				let b_dot = sub(particle.v, q.v);
-				let a_dot_w_b_dot = (a_dot.x * b_dot.y) - (a_dot.y * b_dot.x);
-				let a_dot_w_b = (a_dot.x * B.y) - (a_dot.y * B.x);
-				let a_w_b_dot = (A.x * b_dot.y) - (A.y * b_dot.x);
-				let a_w_b = (A.x * B.y) - (A.y * B.x);
-				let a = a_dot_w_b_dot;
-				let b = a_dot_w_b + a_w_b_dot;
-				let c = a_w_b;
-				let discriminant = sq(b) - (4.0 * a * c);
-				let t = 0;
-				let delta_t = 0.01;
-				if (a == 0) {
-					t = -1.0*c/b;
-				}
-				if (b == 0) {
-					if (c > 0) return;
-					t = sqrt(-c/a);
-				}
-				if (discriminant > 0) {
-					let factor = -0.5 * (b + sign(b)*sqrt(discriminant));
-					let t1 = factor/a;
-					let t2 = c/factor;
-					if (isCollision(t1, particle, r, q)) t = t1;
-					else if (isCollision(t2, particle, r, q)) t = t2;
-					else return;
-				}
-				if (t < delta_t && t > 0) {
-					let pt = particle.p.copy();
-					let rt = r.p.copy();
-					let qt = q.p.copy();
-					acc(pt, t, particle.v);
-					acc(rt, t, r.v);
-					acc(qt, t, q.v);
-					let onX = (pt.x >= (rt.x - 2.0) && pt.x <= (qt.x+2.0)) || (pt.x >= (qt.x-2.0) && pt.x <= (rt.x+2.0));
-					let onY = (pt.y >= (rt.y - 2.0) && pt.y <= (qt.y+2.0)) || (pt.y >= (qt.y-2.0) && pt.y <= (rt.y+2.0));
-					if (onX && onY) {
-						let pr = sub(pt, rt).mag();
-						let pq = sub(qt, pt).mag();
-						let rq = sub(rt, qt).mag();
-						let alpha = pr/rq;
-						let beta = pq/rq;
-						let c_dot = q.p.copy();
-						acc(c_dot, sub(r.v, q.v), alpha);
-						let contact_v = sub(pt, c_dot);
-						let n0 = createVector(q.p.y-r.p.y, r.p.x-q.p.x);
-						n0.normalize();
-						let n_hat = mult(n0, sign(-1*dot(contact_v, n0)));
-						let v_n = dot(sub(particle.v, c_dot), n_hat);
-						let m_eff = 0;
-						if (!particle.pin) m_eff += 1.0/particle.mass;
-						if (!r.pin) m_eff += beta*beta/r.mass;
-						if (!q.pin) m_eff += alpha*alpha/q.mass;
-						let gamma = v_n*-1.0*(1+epsilon)*(m_eff);
-						acc(q.v, -beta*gamma/q.mass, n_hat);
-						acc(r.v, -alpha*gamma/r.mass, n_hat);
-					}
-				}	
-			}
-
-		}
-	}
-
-	// Initially just brute force all-pairs checks, later use bounding volumes or better broad phase.
-
 }
 
 // Efficiently checks that no pair of edges overlap, where the pairs do not share a particle in common.
