@@ -12,7 +12,7 @@
  * @date 10/28/2022
  */
 
-const MAX_BLOBS = 2; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
+const MAX_BLOBS = 3; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
 const DRAW_BLOB_PARTICLES = true;
 
 const WIDTH = 1024;
@@ -142,6 +142,38 @@ function advanceTime(dt) {
 		acc(particle.p, dt, particle.v)
 
 	verifyNoEdgeEdgeOverlap();
+	isBVOverlap();
+}
+
+function isBVOverlap() {
+	//blob against blob
+	for (let i = 0; i < blobs.length; i++) {
+		for (let j = i+1; j < blobs.length; j++) {
+			BV1 = blobs[i].getAABB();
+			BV2 = blobs[j].getAABB();
+			if (BV1.maxX >= BV2.minX && BV1.minX <= BV2.maxX) { //check x
+				if (BV1.maxY >= BV2.minY && BV1.minY <= BV2.maxY) { //check y
+					//isPaused = true;
+					return true;
+				}
+			}
+		}
+	}
+	// blob against env edges
+	for (let i = 0; i < blobs.length; i++) {
+		for (let j = 1; j < environment.envEdges.length; j++) {
+			BV1 = blobs[i].getAABB();
+			BV2 = environment.envEdges[j].getBV();
+			if (BV1.maxX >= BV2.minX && BV1.minX <= BV2.maxX) { //check x
+				if (BV1.maxY >= BV2.minY && BV1.minY <= BV2.maxY) { //check y
+					//isPaused = true;
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 function isCollision(t, particle, r, q) {

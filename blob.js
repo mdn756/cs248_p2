@@ -169,8 +169,12 @@ class Blob {
 			maxX: maxX,
 			maxY: maxY
 		} 
+		return AABB;
+	}
 
+	drawAABB() {
 		/////////////////////TODO: COMMENT THIS IF YOU DONT WANT THE BV DRAWN 
+		let AABB = this.getAABB();
 		push();
 		noFill();
 		rect(AABB.minX, AABB.minY, AABB.maxX - AABB.minX, AABB.maxY - AABB.minY);
@@ -249,7 +253,7 @@ class Blob {
 				circle(particle.p.x, particle.p.y, PARTICLE_RADIUS);
 		}
 		this.drawBlobFace();
-		this.getAABB();
+		this.drawAABB();
 		pop();
 	}
 
