@@ -12,7 +12,7 @@
  * @date 10/28/2022
  */
 
-const MAX_BLOBS = 3; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
+const MAX_BLOBS = 4; /// TODO: 100 or more to complete "Attack of the Blobs!" challenge. Use just a few for testing. 
 const DRAW_BLOB_PARTICLES = true;
 
 const WIDTH = 1024;
@@ -142,7 +142,6 @@ function advanceTime(dt) {
 		acc(particle.p, dt, particle.v)
 
 	verifyNoEdgeEdgeOverlap();
-	//isBVOverlap();
 }
 
 function isBVOverlap(obj1, obj2) {

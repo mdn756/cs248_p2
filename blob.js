@@ -253,7 +253,7 @@ class Blob {
 				circle(particle.p.x, particle.p.y, PARTICLE_RADIUS);
 		}
 		this.drawBlobFace();
-		this.drawAABB();
+		//this.drawAABB();
 		pop();
 	}
 
@@ -345,10 +345,10 @@ class Edge {
 		let b = this.r.p;
 		line(a.x, a.y, b.x, b.y);
 		
-		let AABB = this.getBV()
-		noFill();
-		stroke(0, 0, 255);
-		rect(AABB.minX, AABB.minY, AABB.maxX - AABB.minX, AABB.maxY - AABB.minY);
+		//let AABB = this.getBV()
+		//noFill();
+		//stroke(0, 0, 255);
+		//rect(AABB.minX, AABB.minY, AABB.maxX - AABB.minX, AABB.maxY - AABB.minY);
 
 	}
 	getBV() {
