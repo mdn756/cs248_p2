@@ -569,9 +569,16 @@ class Environment {
 			let n = 8;
 			for (let i = 1; i < n; i++) {
 				for (let j = 1; j < n; j++) {
-					if ((i + j) % 2 == 0) { // alternating pegs
-						//this.createPachinkoPeg(width * (i / n), height / 5 + height / 4 * 3 * (j / n), 11); // round 4-edge peg
-						this.createPachinkoWedge(width * (i / n), height / 5 + height / 4 * 3 * (j / n), 11); // cheap 2-edge peg
+					if (j != 3 && j!= 4) {
+						if ((i + j) % 2 == 0) { // alternating pegs
+							//this.createPachinkoPeg(width * (i / n), height / 5 + height / 4 * 3 * (j / n), 11); // round 4-edge peg
+
+							this.createPachinkoWedge(width * (i / n), height / 5 + height / 4 * 3 * (j / n), 11); // cheap 2-edge peg
+						}
+					}
+					else {
+						this.createSlot(width * (i / n), height / 5 + height / 4 * 3 * (j / n), 20)
+						
 					}
 				}
 			}
@@ -630,7 +637,15 @@ class Environment {
 		this.envParticles.push(p2);
 		this.envEdges.push(e01);
 		this.envEdges.push(e12);
-			
+	}
+	createSlot(x,y,r) {
+		let p0 = createParticle(x, y+r);
+		let p1 = createParticle(x, y-r);
+		p0.pin = p1.pin  = true;
+		let e01 = createEdge(p0, p1);
+		this.envParticles.push(p0);
+		this.envParticles.push(p1);
+		this.envEdges.push(e01);
 	}
 
 	// Updates any moveable rigid elements
