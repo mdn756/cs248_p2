@@ -142,23 +142,23 @@ function advanceTime(dt) {
 		acc(particle.p, dt, particle.v)
 
 	verifyNoEdgeEdgeOverlap();
-	isBVOverlap();
+	//isBVOverlap();
 }
 
 function isBVOverlap(obj1, obj2) {
 	//blob against blob
 	if (obj1 instanceof Blob && obj2 instanceof Blob){
-		BV1 = obj1.getAABB();
-		BV2 = obj2.getAABB();
+		let BV1 = obj1.getAABB();
+		let BV2 = obj2.getAABB();
 	}
 	// blob against env edges
 	else if (obj1 instanceof Blob && obj2 instanceof Edge) {
-		BV1 = obj1.getAABB();
-		BV2 = environment.obj2.getBV();
+		let BV1 = obj1.getAABB();
+		let BV2 = environment.obj2.getBV();
 	}
 	else if (obj1 instanceof Edge && obj2 instanceof Blob) {
-		BV1 = environment.obj1.getBV();
-		BV2 = obj2.getAABB();
+		let BV1 = environment.obj1.getBV();
+		let BV2 = obj2.getAABB();
 	}
 
 		

@@ -266,11 +266,29 @@ class Blob {
 		if (this.ID == 0) {
 			let x = com.x - seriousImage.width / 2;
     		let y = com.y - seriousImage.height / 2;
+			let collisionDetected = false;
+    		 
+			let BV1 = blobs[0].getAABB();
+			for (let i = 0; i < blobs.length; i++) {
+				if (i !== this.ID) {
+					let BV2 = blobs[i].getAABB();
+					if (BV1.maxX >= BV2.minX && BV1.minX <= BV2.maxX) { //check x
+						if (BV1.maxY >= BV2.minY && BV1.minY <= BV2.maxY) { //check y
+							collisionDetected = true;
+							
+							break;
+						}
+					}
+				}
+			}
+			if (collisionDetected) {
+				image(yaranaika, x+WIDTH/75, y+HEIGHT/75);
+			}
+			else {
+				image(seriousImage, x, y);
+			}
 
-    		image(seriousImage, x, y);
-			
 			//TODO: on collision switch to yaranaika
-			//image(yaranaika, x+12, y+12);
 		}
 		else if (this.ID !== 0) {
 			stroke(0);
