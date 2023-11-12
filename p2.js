@@ -148,17 +148,16 @@ function advanceTime(dt) {
 function isBVOverlap(obj1, obj2) {
 	//blob against blob
 	let BV1, BV2;
-	if (obj1 instanceof Blob && obj2 instanceof Blob){
+	if (obj1 instanceof Blob && obj2 instanceof Blob) {
 		BV1 = obj1.getAABB();
 		BV2 = obj2.getAABB();
 	}
-	// blob against env edges
 	else if (obj1 instanceof Blob && obj2 instanceof Edge) {
 		BV1 = obj1.getAABB();
-		BV2 = environment.obj2.getBV();
+		BV2 = obj2.getBV();
 	}
 	else if (obj1 instanceof Edge && obj2 instanceof Blob) {
-		BV1 = environment.obj1.getBV();
+		BV1 = obj1.getBV();
 		BV2 = obj2.getAABB();
 	}
 
