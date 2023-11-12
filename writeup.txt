@@ -1,0 +1,12 @@
+Sarah Teaw -- sarahlst@stanford.edu
+Max Nee -- mdn756@stanford.edu
+
+Features:
+    Changes the faces of the blobs
+
+Bugs:
+    Processing collisions and blowing up of blobs 
+    -- ended up adjusting stiffness constant and
+    dampening the springs to fix the blobs blowing up 
+    in a collision (found it difficult to know if 
+    code had a logical error or constant was too small/large)
